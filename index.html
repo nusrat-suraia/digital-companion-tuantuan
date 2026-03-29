@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>团团 · 文化陪伴数字人</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="app">
+        <header>
+            <div class="avatar">
+                <img src="https://cdn-icons-png.flaticon.com/512/1998/1998613.png" alt="团团">
+                <h1>🐼 团团 · Tuan Tuan</h1>
+            </div>
+            <div class="status">
+                <i class="fas fa-microphone"></i> 语音就绪
+            </div>
+        </header>
+
+        <div class="main">
+            <div class="chat-area">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message assistant">
+                        <div class="avatar-icon">🐼</div>
+                        <div class="bubble">你好呀！我是团团，你的文化陪伴伙伴～</div>
+                    </div>
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" id="userInput" placeholder="输入你的回答 / Enter your answer...">
+                    <button id="sendBtn"><i class="fas fa-paper-plane"></i></button>
+                    <button id="speechBtn"><i class="fas fa-microphone"></i></button>
+                </div>
+            </div>
+            <div class="sidebar">
+                <h3>📚 功能模块</h3>
+                <button class="module-btn" data-module="survival">🌍 生存汉语</button>
+                <button class="module-btn" data-module="memes">📖 文化热词</button>
+                <button class="module-btn" data-module="speech">🗣️ 发音纠正</button>
+                <button class="module-btn" data-module="volunteer">🤝 志愿者服务</button>
+            </div>
+        </div>
+
+        <footer>
+            <p>✨ 陪伴式学习伙伴 | 轻松说中文 ✨</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
