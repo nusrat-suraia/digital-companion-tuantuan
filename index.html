@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>团团 · 数字人文化伴侣</title>
+    <title>数字人团团 · 生存汉语学习伙伴</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- Three.js for 3D Panda -->
     <script type="importmap">
         {
             "imports": {
@@ -18,41 +17,37 @@
 <body>
     <div class="app">
         <header>
-            <div class="avatar">
-                <img src="https://cdn-icons-png.flaticon.com/512/1998/1998613.png" alt="团团">
-                <h1>🐼 团团 · Tuan Tuan</h1>
-            </div>
+            <h1>🐼 数字人团团 · 生存汉语伙伴</h1>
             <div class="status">
                 <i class="fas fa-microphone"></i> 语音就绪
             </div>
         </header>
 
-        <div class="main">
-            <!-- 3D Panda Canvas -->
-            <div class="panda-container">
-                <canvas id="pandaCanvas"></canvas>
-                <div class="speech-bubble" id="speechBubble">
-                    <span id="pandaSpeech">你好呀！我是团团～</span>
+        <div class="panda-stage">
+            <canvas id="pandaCanvas"></canvas>
+            <div class="speech-bubble" id="speechBubble">
+                <span id="pandaSpeech">你好！我是团团，你的中文学习伙伴～</span>
+            </div>
+        </div>
+
+        <div class="chat-area">
+            <div class="scene-info" id="sceneInfo">
+                📍 当前场景：<span id="currentSceneName">签证 · 机场</span>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="message assistant">
+                    <div class="bubble">你好！我是团团，我来陪你练习生存汉语～</div>
                 </div>
             </div>
-
-            <div class="chat-area">
-                <div class="chat-messages" id="chatMessages">
-                    <div class="message assistant">
-                        <div class="avatar-icon">🐼</div>
-                        <div class="bubble">你好呀！我是团团，你的中文学习伙伴～</div>
-                    </div>
-                </div>
-                <div class="chat-input-area">
-                    <input type="text" id="userInput" placeholder="输入你的回答 / Enter your answer...">
-                    <button id="sendBtn"><i class="fas fa-paper-plane"></i></button>
-                    <button id="speechBtn"><i class="fas fa-microphone"></i></button>
-                </div>
+            <div class="chat-input-area">
+                <input type="text" id="userInput" placeholder="说出或输入你的回答...">
+                <button id="sendBtn"><i class="fas fa-paper-plane"></i></button>
+                <button id="speechBtn"><i class="fas fa-microphone"></i></button>
             </div>
         </div>
 
         <footer>
-            <p>✨ 陪伴式学习伙伴 | 轻松说中文 ✨</p>
+            <p>🎤 语音对话 | 发音纠正 | 真实场景练习 🎤</p>
         </footer>
     </div>
 
