@@ -2,10 +2,18 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>团团 · 文化陪伴数字人</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>团团 · 数字人文化伴侣</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Three.js for 3D Panda -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js"
+            }
+        }
+    </script>
 </head>
 <body>
     <div class="app">
@@ -20,11 +28,19 @@
         </header>
 
         <div class="main">
+            <!-- 3D Panda Canvas -->
+            <div class="panda-container">
+                <canvas id="pandaCanvas"></canvas>
+                <div class="speech-bubble" id="speechBubble">
+                    <span id="pandaSpeech">你好呀！我是团团～</span>
+                </div>
+            </div>
+
             <div class="chat-area">
                 <div class="chat-messages" id="chatMessages">
                     <div class="message assistant">
                         <div class="avatar-icon">🐼</div>
-                        <div class="bubble">你好呀！我是团团，你的文化陪伴伙伴～</div>
+                        <div class="bubble">你好呀！我是团团，你的中文学习伙伴～</div>
                     </div>
                 </div>
                 <div class="chat-input-area">
@@ -33,13 +49,6 @@
                     <button id="speechBtn"><i class="fas fa-microphone"></i></button>
                 </div>
             </div>
-            <div class="sidebar">
-                <h3>📚 功能模块</h3>
-                <button class="module-btn" data-module="survival">🌍 生存汉语</button>
-                <button class="module-btn" data-module="memes">📖 文化热词</button>
-                <button class="module-btn" data-module="speech">🗣️ 发音纠正</button>
-                <button class="module-btn" data-module="volunteer">🤝 志愿者服务</button>
-            </div>
         </div>
 
         <footer>
@@ -47,6 +56,6 @@
         </footer>
     </div>
 
-    <script src="script.js"></script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>

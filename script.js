@@ -1,13 +1,193 @@
-// ==================== EMBEDDED DATA ====================
+import * as THREE from 'three';
 
-// Survival scenes with natural conversation flow
+// ==================== THREE.JS 3D PANDA SETUP ====================
+let scene, camera, renderer, pandaGroup, mouth;
+let isSpeaking = false;
+let mouthOpen = false;
+let mouthAnimationInterval = null;
+
+function init3DPanda() {
+    const canvas = document.getElementById('pandaCanvas');
+    const container = document.querySelector('.panda-container');
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x1e3a2a);
+    
+    camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    camera.position.set(0, 1.5, 4);
+    camera.lookAt(0, 1, 0);
+    
+    renderer = new THREE.WebGLRenderer({ canvas, alpha: false });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(2, 5, 3);
+    scene.add(directionalLight);
+    
+    const backLight = new THREE.PointLight(0xffaa66, 0.5);
+    backLight.position.set(0, 2, -2);
+    scene.add(backLight);
+    
+    pandaGroup = new THREE.Group();
+    
+    // Body (white)
+    const bodyGeo = new THREE.SphereGeometry(0.8, 32, 32);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.position.y = 0;
+    pandaGroup.add(body);
+    
+    // Belly (light cream)
+    const bellyGeo = new THREE.SphereGeometry(0.65, 32, 32);
+    const bellyMat = new THREE.MeshStandardMaterial({ color: 0xf5f0e0, roughness: 0.4 });
+    const belly = new THREE.Mesh(bellyGeo, bellyMat);
+    belly.position.y = -0.1;
+    belly.position.z = 0.55;
+    pandaGroup.add(belly);
+    
+    // Head
+    const headGeo = new THREE.SphereGeometry(0.7, 32, 32);
+    const headMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 });
+    const head = new THREE.Mesh(headGeo, headMat);
+    head.position.y = 0.85;
+    pandaGroup.add(head);
+    
+    // Black ears
+    const earGeo = new THREE.SphereGeometry(0.4, 32, 32);
+    const earMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5 });
+    
+    const leftEar = new THREE.Mesh(earGeo, earMat);
+    leftEar.position.set(-0.5, 1.3, 0);
+    leftEar.scale.set(0.8, 1, 0.6);
+    pandaGroup.add(leftEar);
+    
+    const rightEar = new THREE.Mesh(earGeo, earMat);
+    rightEar.position.set(0.5, 1.3, 0);
+    rightEar.scale.set(0.8, 1, 0.6);
+    pandaGroup.add(rightEar);
+    
+    // Black eye patches
+    const patchGeo = new THREE.SphereGeometry(0.3, 32, 32);
+    const patchMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.3 });
+    
+    const leftPatch = new THREE.Mesh(patchGeo, patchMat);
+    leftPatch.position.set(-0.45, 1.0, 0.65);
+    leftPatch.scale.set(1.2, 0.9, 0.6);
+    pandaGroup.add(leftPatch);
+    
+    const rightPatch = new THREE.Mesh(patchGeo, patchMat);
+    rightPatch.position.set(0.45, 1.0, 0.65);
+    rightPatch.scale.set(1.2, 0.9, 0.6);
+    pandaGroup.add(rightPatch);
+    
+    // Eyes (white part)
+    const eyeWhiteGeo = new THREE.SphereGeometry(0.18, 32, 32);
+    const eyeWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+    
+    const leftEyeWhite = new THREE.Mesh(eyeWhiteGeo, eyeWhiteMat);
+    leftEyeWhite.position.set(-0.45, 1.02, 0.9);
+    pandaGroup.add(leftEyeWhite);
+    
+    const rightEyeWhite = new THREE.Mesh(eyeWhiteGeo, eyeWhiteMat);
+    rightEyeWhite.position.set(0.45, 1.02, 0.9);
+    pandaGroup.add(rightEyeWhite);
+    
+    // Pupils
+    const pupilGeo = new THREE.SphereGeometry(0.1, 32, 32);
+    const pupilMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
+    
+    const leftPupil = new THREE.Mesh(pupilGeo, pupilMat);
+    leftPupil.position.set(-0.45, 1.0, 1.05);
+    pandaGroup.add(leftPupil);
+    
+    const rightPupil = new THREE.Mesh(pupilGeo, pupilMat);
+    rightPupil.position.set(0.45, 1.0, 1.05);
+    pandaGroup.add(rightPupil);
+    
+    // Nose (black)
+    const noseGeo = new THREE.SphereGeometry(0.12, 32, 32);
+    const noseMat = new THREE.MeshStandardMaterial({ color: 0x2c1a0a, roughness: 0.2 });
+    const nose = new THREE.Mesh(noseGeo, noseMat);
+    nose.position.set(0, 0.85, 1.02);
+    pandaGroup.add(nose);
+    
+    // Mouth (red/pink - will animate)
+    const mouthGeo = new THREE.SphereGeometry(0.08, 32, 32);
+    const mouthMat = new THREE.MeshStandardMaterial({ color: 0xff6666 });
+    mouth = new THREE.Mesh(mouthGeo, mouthMat);
+    mouth.position.set(0, 0.75, 1.05);
+    pandaGroup.add(mouth);
+    
+    scene.add(pandaGroup);
+    
+    // Simple floating animation
+    function animate() {
+        requestAnimationFrame(animate);
+        
+        const time = Date.now() * 0.003;
+        pandaGroup.position.y = Math.sin(time) * 0.03;
+        
+        renderer.render(scene, camera);
+    }
+    
+    animate();
+    
+    window.addEventListener('resize', () => {
+        const newWidth = container.clientWidth;
+        const newHeight = container.clientHeight;
+        camera.aspect = newWidth / newHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(newWidth, newHeight);
+    });
+}
+
+// Mouth animation for speaking
+function startSpeakingAnimation() {
+    if (mouthAnimationInterval) return;
+    
+    mouthAnimationInterval = setInterval(() => {
+        if (mouthOpen) {
+            mouth.scale.set(1.5, 0.8, 1);
+            mouthOpen = false;
+        } else {
+            mouth.scale.set(0.8, 1.2, 1);
+            mouthOpen = true;
+        }
+    }, 150);
+}
+
+function stopSpeakingAnimation() {
+    if (mouthAnimationInterval) {
+        clearInterval(mouthAnimationInterval);
+        mouthAnimationInterval = null;
+    }
+    mouth.scale.set(1, 1, 1);
+    mouthOpen = false;
+}
+
+// ==================== SURVIVAL CHINESE DATA ====================
 const survivalData = {
     scenes: [
+        {
+            id: "visa",
+            name: "签证 · 机场",
+            init: "🐼 你好！请问你去哪个国家？需要我帮你办理登机手续吗？",
+            keywords: ["美国", "中国", "签证", "护照", "登机", "行李", "visa", "passport", "flight", "baggage"],
+            correctResponse: "好的！请出示您的护照和签证～",
+            wrongResponse: "能告诉我你要去哪里吗？或者需要什么帮助？"
+        },
         {
             id: "directions",
             name: "问路 · 校园",
             init: "🐼 同学你好！请问图书馆怎么走？我听说那里有好多书！",
-            keywords: ["直走", "左转", "直行", "左边", "go straight", "turn left", "left"],
+            keywords: ["直走", "左转", "右转", "直行", "左边", "右边", "go straight", "turn left", "right"],
             correctResponse: "哇！你说得很清楚！那我们走吧～",
             wrongResponse: "嗯？我没太听明白～你可以告诉我该往哪个方向走吗？"
         },
@@ -15,92 +195,25 @@ const survivalData = {
             id: "ordering",
             name: "点餐 · 食堂",
             init: "🐼 我想吃辣的，但不要太油～你能帮我跟老板说吗？",
-            keywords: ["辣子鸡", "辣", "不油", "少油", "spicy chicken", "spicy", "not oily", "less oil"],
+            keywords: ["辣子鸡", "麻婆豆腐", "水煮鱼", "辣", "不油", "少油", "spicy", "not oily"],
             correctResponse: "太棒了！老板说马上就好！",
             wrongResponse: "老板没听清呢～能再说一次你要吃什么吗？"
         },
         {
-            id: "returns",
-            name: "网购退货",
+            id: "shopping",
+            name: "购物 · 退货",
             init: "🐼 哎呀，这双鞋尺码不对……怎么退货呀？",
-            keywords: ["退货", "尺码", "不合适", "return", "size", "doesn't fit", "wrong size"],
+            keywords: ["退货", "换货", "尺码", "不合适", "return", "exchange", "size", "fit"],
             correctResponse: "对对对！这样说明白多了！",
             wrongResponse: "可以告诉我为什么要退货吗？这样店员才能帮你～"
         },
         {
             id: "hospital",
-            name: "医院挂号",
+            name: "医院 · 挂号",
             init: "🐼 我肚子疼……请问挂号处在哪儿？",
-            keywords: ["挂号处", "挂号", "怎么走", "registration", "where", "how to get"],
+            keywords: ["挂号处", "挂号", "急诊", "内科", "怎么走", "registration", "emergency", "where"],
             correctResponse: "谢谢！下次不舒服要早点告诉我哦～",
             wrongResponse: "能告诉我挂号处怎么走吗？"
-        },
-        {
-            id: "checkin",
-            name: "机场值机",
-            init: "🐼 我要去上海！需要托运一件行李……能帮我办手续吗？",
-            keywords: ["靠窗", "窗户", "座位", "window", "seat", "靠窗座位"],
-            correctResponse: "好的！靠窗座位，没问题！",
-            wrongResponse: "可以告诉工作人员你想要什么座位吗？"
-        }
-    ]
-};
-
-// Cultural buzzwords (custom list)
-const customMemes = [
-    {
-        keyword: "内卷",
-        english: "involution",
-        meaning: "指竞争激烈，大家都拼命努力，像漩涡一样停不下来。",
-        culturalContext: "源于古代科举考生拼命读书，现在形容恶性竞争。",
-        example: "我们班同学都学到半夜，真是太卷了。"
-    },
-    {
-        keyword: "躺平",
-        english: "lying flat",
-        meaning: "放弃激烈竞争，选择低欲望、轻松的生活态度。",
-        culturalContext: "现代年轻人对高压生活的一种回应。",
-        example: "我不想卷了，准备躺平。"
-    },
-    {
-        keyword: "破防",
-        english: "break defense",
-        meaning: "心理防线被击破，情绪崩溃或感动到流泪。",
-        culturalContext: "网络用语，常用于形容被戳中泪点。",
-        example: "看到家乡的视频，我瞬间破防了。"
-    },
-    {
-        keyword: "YYDS",
-        english: "yyds",
-        meaning: "“永远的神”拼音首字母，形容某人或某物非常厉害。",
-        culturalContext: "网络流行语，常用于夸赞。",
-        example: "这家店的小笼包，YYDS！"
-    }
-];
-
-// Volunteer service scenes
-const volunteerData = {
-    scenes: [
-        {
-            id: "spring_festival",
-            init: "🐼 你好！我是国际学生，为什么中国人过春节要吃饺子呀？",
-            keywords: ["饺子", "元宝", "团圆", "财富", "dumpling", "ingot", "reunion", "wealth"],
-            correctResponse: "哇！你的解释好有趣！我明白了！",
-            wrongResponse: "能再给我讲讲为什么吃饺子吗？"
-        },
-        {
-            id: "dragon_boat",
-            init: "🐼 端午节为什么要划龙舟呢？",
-            keywords: ["屈原", "纪念", "划船", "救", "qu yuan", "commemorate", "row", "save"],
-            correctResponse: "原来是这样！谢谢你的讲解～",
-            wrongResponse: "可以告诉我端午节的故事吗？"
-        },
-        {
-            id: "mooncake",
-            init: "🐼 中秋节为什么要吃月饼？",
-            keywords: ["团圆", "月亮", "分享", "家庭", "reunion", "moon", "share", "family"],
-            correctResponse: "真好！我也想和你们一起过中秋节！",
-            wrongResponse: "能告诉我月饼代表什么意思吗？"
         }
     ]
 };
@@ -110,13 +223,11 @@ const chatMessages = document.getElementById('chatMessages');
 const userInput = document.getElementById('userInput');
 const sendBtn = document.getElementById('sendBtn');
 const speechBtn = document.getElementById('speechBtn');
-const moduleBtns = document.querySelectorAll('.module-btn');
+const pandaSpeech = document.getElementById('pandaSpeech');
 
 // ==================== Global State ====================
-let currentModule = 'survival';
-let currentSurvivalScene = null;
-let currentSpeechTarget = null;
-let currentVolunteerScene = null;
+let currentScene = null;
+let currentSceneIndex = 0;
 
 // ==================== Helper Functions ====================
 function addMessage(sender, text, isUser = false) {
@@ -130,16 +241,38 @@ function addMessage(sender, text, isUser = false) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// Check if a string contains Chinese characters
+function updatePandaSpeech(text) {
+    pandaSpeech.textContent = text;
+    pandaSpeech.style.animation = 'none';
+    setTimeout(() => {
+        pandaSpeech.style.animation = 'bubblePop 0.3s ease-out';
+    }, 10);
+}
+
+function speakAsPanda(text) {
+    updatePandaSpeech(text);
+    startSpeakingAnimation();
+    
+    if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'zh-CN';
+        utterance.rate = 0.9;
+        utterance.onend = () => {
+            stopSpeakingAnimation();
+        };
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
+    } else {
+        setTimeout(() => stopSpeakingAnimation(), text.length * 100);
+    }
+}
+
 function containsChinese(text) {
     return /[\u4e00-\u9fa5]/.test(text);
 }
 
-// Natural answer matching - checks if user's answer contains any key concepts
 function isAnswerNatural(userAnswer, keywords) {
     const userLower = userAnswer.toLowerCase().trim();
-    
-    // Check if any keyword appears in user's answer
     for (let keyword of keywords) {
         if (userLower.includes(keyword.toLowerCase())) {
             return true;
@@ -148,269 +281,49 @@ function isAnswerNatural(userAnswer, keywords) {
     return false;
 }
 
-// ==================== English Dictionary API ====================
-async function lookupEnglishWord(word) {
-    try {
-        const proxyUrl = 'https://api.allorigins.win/raw?url=';
-        const apiUrl = `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`;
-        const url = proxyUrl + encodeURIComponent(apiUrl);
-        
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-            return null;
-        }
-        
-        const data = await response.json();
-        
-        if (data && data.length > 0) {
-            const entry = data[0];
-            let meanings = [];
-            
-            if (entry.meanings && entry.meanings.length > 0) {
-                for (let meaning of entry.meanings) {
-                    if (meaning.definitions && meaning.definitions.length > 0) {
-                        meanings.push({
-                            partOfSpeech: meaning.partOfSpeech,
-                            definition: meaning.definitions[0].definition,
-                            example: meaning.definitions[0].example || null
-                        });
-                    }
-                }
-            }
-            
-            return {
-                found: true,
-                word: word,
-                phonetic: entry.phonetic || '',
-                meanings: meanings.slice(0, 3)
-            };
-        }
-        return null;
-    } catch (error) {
-        console.error('English API lookup error:', error);
-        return null;
-    }
-}
-
-// ==================== Chinese Dictionary API (Moedict) ====================
-async function lookupChineseWord(word) {
-    try {
-        const proxyUrl = 'https://api.allorigins.win/raw?url=';
-        const apiUrl = `https://www.moedict.tw/uni/${encodeURIComponent(word)}`;
-        const url = proxyUrl + encodeURIComponent(apiUrl);
-        
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-            return null;
-        }
-        
-        const data = await response.json();
-        
-        if (data && data.heteronyms && data.heteronyms.length > 0) {
-            const firstMeaning = data.heteronyms[0];
-            let definitions = [];
-            
-            if (firstMeaning.definitions && firstMeaning.definitions.length > 0) {
-                definitions = firstMeaning.definitions.map(d => d.def);
-            }
-            
-            let pinyin = '';
-            if (firstMeaning.bopomofo) {
-                pinyin = firstMeaning.bopomofo;
-            }
-            
-            return {
-                found: true,
-                word: word,
-                pinyin: pinyin,
-                meanings: definitions.slice(0, 3)
-            };
-        }
-        return null;
-    } catch (error) {
-        console.error('Chinese API lookup error:', error);
-        return null;
-    }
-}
-
-// ==================== Survival Module (Natural Conversation) ====================
-function startSurvivalScene(index = 0) {
+// ==================== Survival Module ====================
+function startScene(index = 0) {
     if (!survivalData.scenes.length) return;
-    currentSurvivalScene = survivalData.scenes[index];
-    addMessage('assistant', currentSurvivalScene.init);
+    currentScene = survivalData.scenes[index];
+    currentSceneIndex = index;
+    addMessage('assistant', currentScene.init);
+    speakAsPanda(currentScene.init.replace('🐼 ', ''));
 }
 
-function processSurvival(userText) {
-    if (!currentSurvivalScene) {
-        addMessage('assistant', '请先点击左侧“生存汉语”开始。');
+function processUserAnswer(userText) {
+    if (!currentScene) {
+        addMessage('assistant', '请先开始对话～');
+        speakAsPanda('请先开始对话～');
         return;
     }
     
-    const isCorrect = isAnswerNatural(userText, currentSurvivalScene.keywords);
+    const isCorrect = isAnswerNatural(userText, currentScene.keywords);
     
     if (isCorrect) {
-        addMessage('assistant', currentSurvivalScene.correctResponse);
-        const currentIndex = survivalData.scenes.findIndex(s => s.id === currentSurvivalScene.id);
-        if (currentIndex + 1 < survivalData.scenes.length) {
-            addMessage('assistant', '🎉 很棒！我们继续下一个场景～');
-            setTimeout(() => startSurvivalScene(currentIndex + 1), 800);
-        } else {
-            addMessage('assistant', '🎉 恭喜你完成了所有生存汉语场景！你可以点击其他模块继续学习～');
-        }
-    } else {
-        addMessage('assistant', currentSurvivalScene.wrongResponse);
-        // Give a helpful hint without forcing exact phrase
-        if (currentSurvivalScene.keywords.length > 0) {
-            const hint = currentSurvivalScene.keywords.slice(0, 2).join(" 或 ");
-            addMessage('assistant', `💡 提示：你可以说“${hint}”之类的～用你自己的话表达就行！`);
-        }
-    }
-}
-
-// ==================== Memes Module ====================
-async function processMemes(userText) {
-    let keyword = userText.trim();
-    if (!keyword) return;
-    
-    const lowerKeyword = keyword.toLowerCase();
-    
-    // First, check custom list
-    let meme = customMemes.find(m => 
-        m.keyword === keyword || 
-        (m.english && m.english.toLowerCase() === lowerKeyword)
-    );
-    
-    if (meme) {
-        addMessage('assistant', `📖 “${meme.keyword}” 的意思：${meme.meaning}`);
-        addMessage('assistant', `🎋 文化背景：${meme.culturalContext}`);
-        addMessage('assistant', `🤔 举个栗子：${meme.example}`);
-        return;
-    }
-    
-    // Try partial match
-    let partialMatch = customMemes.find(m => 
-        keyword.includes(m.keyword) ||
-        (m.english && lowerKeyword.includes(m.english.toLowerCase()))
-    );
-    
-    if (partialMatch) {
-        addMessage('assistant', `📖 “${partialMatch.keyword}” 的意思：${partialMatch.meaning}`);
-        addMessage('assistant', `🎋 文化背景：${partialMatch.culturalContext}`);
-        addMessage('assistant', `🤔 举个栗子：${partialMatch.example}`);
-        return;
-    }
-    
-    // API lookup
-    const isChinese = containsChinese(keyword);
-    
-    if (isChinese) {
-        addMessage('assistant', `🔍 正在查询中文词“${keyword}”...`);
-        const result = await lookupChineseWord(keyword);
+        addMessage('assistant', currentScene.correctResponse);
+        speakAsPanda(currentScene.correctResponse);
         
-        if (result && result.found && result.meanings.length > 0) {
-            addMessage('assistant', `📖 “${result.word}” 的解释：`);
-            result.meanings.forEach((meaning, index) => {
-                addMessage('assistant', `  ${index + 1}. ${meaning}`);
-            });
-            if (result.pinyin) {
-                addMessage('assistant', `🔊 拼音参考：${result.pinyin}`);
-            }
+        if (currentSceneIndex + 1 < survivalData.scenes.length) {
+            setTimeout(() => {
+                addMessage('assistant', '🎉 很棒！我们继续下一个场景～');
+                speakAsPanda('很棒！我们继续下一个场景～');
+                setTimeout(() => startScene(currentSceneIndex + 1), 2000);
+            }, 1000);
         } else {
-            addMessage('assistant', `🤔 “${keyword}” 这个词暂时没有找到解释。试试问“内卷”、“躺平”、“破防”吧～`);
+            setTimeout(() => {
+                addMessage('assistant', '🎉 恭喜你完成了所有场景！你真棒！');
+                speakAsPanda('恭喜你完成了所有场景！你真棒！');
+            }, 1000);
         }
     } else {
-        addMessage('assistant', `🔍 正在查询英文词“${keyword}”...`);
-        const result = await lookupEnglishWord(keyword);
-        
-        if (result && result.found && result.meanings.length > 0) {
-            addMessage('assistant', `📖 “${result.word}” 的英文解释：`);
-            result.meanings.forEach((meaning, index) => {
-                let msg = `  ${index + 1}. [${meaning.partOfSpeech}] ${meaning.definition}`;
-                if (meaning.example) {
-                    msg += `\n     📝 例句: ${meaning.example}`;
-                }
-                addMessage('assistant', msg);
-            });
-            if (result.phonetic) {
-                addMessage('assistant', `🔊 发音：/${result.phonetic}/`);
-            }
-        } else {
-            addMessage('assistant', `🤔 “${keyword}” 这个词暂时没有找到解释。`);
-            addMessage('assistant', '📚 试试：内卷、躺平、破防、YYDS、朋友、love、happy...');
-        }
-    }
-}
-
-// ==================== Speech Correction Module ====================
-function processSpeech(userText) {
-    if (!currentSpeechTarget) {
-        currentSpeechTarget = "你好，我叫团团";
-        addMessage('assistant', '🎤 试着说出：“你好，我叫团团”');
-        return;
-    }
-    
-    const target = currentSpeechTarget;
-    const userLower = userText.trim().toLowerCase();
-    const targetLower = target.toLowerCase();
-    
-    if (userLower === targetLower) {
-        addMessage('assistant', '✅ 发音非常标准！真棒！');
-        if (target === "你好，我叫团团") {
-            currentSpeechTarget = "谢谢";
-            addMessage('assistant', '🎤 下一句：“谢谢”');
-        } else if (target === "谢谢") {
-            currentSpeechTarget = "再见";
-            addMessage('assistant', '🎤 下一句：“再见”');
-        } else {
-            addMessage('assistant', '🎉 恭喜你完成了发音练习！');
-            currentSpeechTarget = null;
-        }
-    } else {
-        addMessage('assistant', `📢 应该是“${target}”。再试试看？`);
-        speakText(target);
-    }
-}
-
-function speakText(text) {
-    if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'zh-CN';
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(utterance);
-    }
-}
-
-// ==================== Volunteer Module ====================
-function startVolunteerScene(index = 0) {
-    if (!volunteerData.scenes.length) return;
-    currentVolunteerScene = volunteerData.scenes[index];
-    addMessage('assistant', currentVolunteerScene.init);
-}
-
-function processVolunteer(userText) {
-    if (!currentVolunteerScene) {
-        addMessage('assistant', '请先点击左侧“志愿者服务”开始。');
-        return;
-    }
-    
-    const isCorrect = isAnswerNatural(userText, currentVolunteerScene.keywords);
-    
-    if (isCorrect) {
-        addMessage('assistant', currentVolunteerScene.correctResponse);
-        const currentIndex = volunteerData.scenes.findIndex(s => s.id === currentVolunteerScene.id);
-        if (currentIndex + 1 < volunteerData.scenes.length) {
-            addMessage('assistant', '🎉 好棒！我们继续下一个场景～');
-            setTimeout(() => startVolunteerScene(currentIndex + 1), 800);
-        } else {
-            addMessage('assistant', '🎉 你完成了所有志愿者场景！感谢你的付出！');
-        }
-    } else {
-        addMessage('assistant', currentVolunteerScene.wrongResponse);
-        if (currentVolunteerScene.keywords.length > 0) {
-            const hint = currentVolunteerScene.keywords.slice(0, 2).join(" 或 ");
-            addMessage('assistant', `💡 提示：可以提到“${hint}”这些关键词～用你自己的话说！`);
+        addMessage('assistant', currentScene.wrongResponse);
+        speakAsPanda(currentScene.wrongResponse);
+        if (currentScene.keywords.length > 0) {
+            const hint = currentScene.keywords.slice(0, 2).join(" 或 ");
+            setTimeout(() => {
+                const hintMsg = `💡 提示：你可以说“${hint}”之类的～`;
+                addMessage('assistant', hintMsg);
+            }, 1000);
         }
     }
 }
@@ -422,42 +335,7 @@ async function handleUserInput(inputText) {
     addMessage('user', inputText, true);
     userInput.value = '';
     
-    switch (currentModule) {
-        case 'survival':
-            processSurvival(inputText);
-            break;
-        case 'memes':
-            await processMemes(inputText);
-            break;
-        case 'speech':
-            processSpeech(inputText);
-            break;
-        case 'volunteer':
-            processVolunteer(inputText);
-            break;
-        default:
-            addMessage('assistant', '请从左侧选择一个模块开始～');
-    }
-}
-
-// ==================== Module Switching ====================
-function switchModule(module) {
-    currentModule = module;
-    chatMessages.innerHTML = '';
-    
-    if (module === 'survival') {
-        addMessage('assistant', '🌍 生存汉语模块：我会模拟真实场景，用你自己的话回答就行！');
-        startSurvivalScene(0);
-    } else if (module === 'memes') {
-        addMessage('assistant', '📖 文化热词百科：输入任何中文词或英文词，我会自动查字典！');
-        addMessage('assistant', '✨ 试试：内卷、朋友、love、happy、美丽...');
-    } else if (module === 'speech') {
-        addMessage('assistant', '🗣️ 发音纠正模块：试着说出“你好，我叫团团”');
-        currentSpeechTarget = "你好，我叫团团";
-    } else if (module === 'volunteer') {
-        addMessage('assistant', '🤝 志愿者服务：现在你是一名中国志愿者，我来扮演外国学生～');
-        startVolunteerScene(0);
-    }
+    processUserAnswer(inputText);
 }
 
 // ==================== Speech Recognition ====================
@@ -476,6 +354,7 @@ function initSpeechRecognition() {
     
     recognition.onstart = () => {
         addMessage('assistant', '🎤 我在听，请说话...');
+        updatePandaSpeech('🎤 我在听...');
     };
     recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
@@ -485,6 +364,7 @@ function initSpeechRecognition() {
     recognition.onerror = (event) => {
         console.error('语音识别错误:', event.error);
         addMessage('assistant', '语音识别失败，请手动输入～');
+        updatePandaSpeech('没听清，可以再说一次吗？');
     };
 }
 
@@ -509,13 +389,10 @@ if (speechBtn) {
     speechBtn.addEventListener('click', startSpeechInput);
 }
 
-moduleBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-        const module = btn.dataset.module;
-        switchModule(module);
-    });
+// ==================== Initialize ====================
+// Wait for DOM to be fully loaded
+window.addEventListener('load', () => {
+    init3DPanda();
+    initSpeechRecognition();
+    startScene(0);
 });
-
-// ==================== Initialization ====================
-switchModule('survival');
-initSpeechRecognition();
